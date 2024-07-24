@@ -1,0 +1,2 @@
+E:\Unity Projects\Chess\obj\Release\Assembly-CSharp.csproj.AssemblyReference.cache
+E:\Unity Projects\Chess\obj\Release\Assembly-CSharp.csproj.CoreCompileInputs.cache
