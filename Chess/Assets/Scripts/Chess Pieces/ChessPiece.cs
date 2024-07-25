@@ -34,6 +34,8 @@ public class ChessPiece : MonoBehaviour
 
     private void Awake()
     {
+        origin = -Vector2Int.one;
+
         SpriteRenderer = GetComponent<SpriteRenderer>();
         direction = (int)team;
     }
@@ -79,7 +81,8 @@ public class ChessPiece : MonoBehaviour
         foreach (var direction in directions)
         {
             int x = origin.x + direction.x, y = origin.y + direction.y;
-            for (; x < distance && y < distance && ChessBoard.CheckIfCoordsOnBoard(new Vector2Int(x, y)); x += direction.x, y += direction.y)
+            int currentDistance = distance;
+            for (; currentDistance-- > 0 && ChessBoard.CheckIfCoordsOnBoard(new Vector2Int(x, y)); x += direction.x, y += direction.y)
             {
                 var anotherPiece = ChessBoard.GetPieceAt(new Vector2Int(x, y));
                 if (anotherPiece)

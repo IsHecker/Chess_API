@@ -1,10 +1,9 @@
 using SimpleJSON;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.UI;
 using UnityHelper.Utilities;
 
 public class UIPuzzleManager : MonoBehaviour
@@ -15,6 +14,9 @@ public class UIPuzzleManager : MonoBehaviour
     [SerializeField] private Transform resultParent;
     [SerializeField] private TMP_Text resultCount;
     [SerializeField] private TMP_InputField searchBar;
+
+    [SerializeField] private Sprite[] whitePieces;
+    [SerializeField] private Sprite[] blackPieces;
 
     public int PuzzlesCount { 
         get => puzzlesCount; 
@@ -60,15 +62,16 @@ public class UIPuzzleManager : MonoBehaviour
         loadingScreen.SetActive(true);
 
         var search = searchBar.text;
+
         yield return APIHandler.SendRequest($"http://localhost:3000/api/puzzles/creator", result: (res) => response = res);
 
-
         int length = response["length"];
+        PuzzlesCount = length;
 
         for (int i = 0; i < length; i++)
         {
             var puzzleData = CreatePuzzleTile();
-            puzzleData.SetData(response["data"]["puzzles"][i]);
+            puzzleData.SetData(response["data"]["puzzles"][i], whitePieces, blackPieces);
         }
 
         loadingScreen.SetActive(false);
@@ -91,14 +94,14 @@ public class UIPuzzleManager : MonoBehaviour
         for (int i = 0; i < length; i++)
         {
             var puzzleData = CreatePuzzleTile();
-            puzzleData.SetData(response["data"]["puzzles"][i]);
+            puzzleData.SetData(response["data"]["puzzles"][i], whitePieces, blackPieces);
         }
         var allPuzzles = resultParent.GetComponentsInChildren<PuzzleTile>();
 
         if (!isCreator)
             MarkSolvedPuzzles(allPuzzles, solvedPuzzles);
 
-        PuzzleManager.AllPuzzles = allPuzzles;
+        PuzzleManager.Instance.AllPuzzles = allPuzzles;
 
         loadingScreen.SetActive(false);
     }
@@ -141,8 +144,14 @@ public class UIPuzzleManager : MonoBehaviour
         return puzzleData;
     }
 
-    public void GetPuzzles()
+    public void SearchForPuzzle()
     {
+        if(User.Role == "Creator")
+        {
+            StartCoroutine(GetCreatorPuzzles());
+            return;
+        }
+
         StartCoroutine(GetPuzzlesRequest());
     }
 

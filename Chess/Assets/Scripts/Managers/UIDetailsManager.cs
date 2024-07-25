@@ -6,11 +6,14 @@ public class UIDetailsManager : MonoBehaviour
 {
     [SerializeField] private Button nextPuzzleButton;
     [SerializeField] private Button prevPuzzleButton;
+    [SerializeField] private Button undoButton;
+    [SerializeField] private Button redoButton;
 
     [SerializeField] private TMP_Text puzzleName;
     [SerializeField] private TMP_Text creatorName;
     [SerializeField] private TMP_Text difficulty;
     [SerializeField] private TMP_Text date;
+    [SerializeField] private TMP_Text solvedBy;
 
     [SerializeField] private GameObject puzzleWindow;
 
@@ -24,12 +27,32 @@ public class UIDetailsManager : MonoBehaviour
 
     public void UndoMove()
     {
-        board.UndoMove();
+        board.UndoMove(true);
+
+        //if (board.HistoryIndex >= board.MovesHistory.Count - 1)
+        //{
+        //    undoButton.interactable = false;
+        //    return;
+        //}
+
+        //if (!redoButton.interactable)
+        //    redoButton.interactable = true;
     }
 
     public void RedoMove()
     {
-        board.RedoMove();   
+        board.RedoMove(true);
+
+        //if (board.HistoryIndex < 0)
+        //{
+        //    redoButton.interactable = false;
+        //    return;
+        //}
+
+        
+
+        //if (!undoButton.interactable)
+        //    undoButton.interactable = true;
     }
 
     public void Restart()
@@ -39,31 +62,19 @@ public class UIDetailsManager : MonoBehaviour
 
     public void NextPuzzle()
     {
-        if (currentPuzzleIndex >= PuzzleManager.AllPuzzles.Length - 1)
-        {
-            nextPuzzleButton.interactable = false;
-            return;
-        }
-
         prevPuzzleButton.interactable = true;
 
-        SetData(PuzzleManager.GetPuzzle(++currentPuzzleIndex));
+        SetData(PuzzleManager.Instance.GetPuzzle(++currentPuzzleIndex));
 
-        if (currentPuzzleIndex >= PuzzleManager.AllPuzzles.Length - 1)
+        if (currentPuzzleIndex >= PuzzleManager.Instance.AllPuzzles.Length - 1)
             nextPuzzleButton.interactable = false;
     }
 
     public void PrevPuzzle()
     {
-        if (currentPuzzleIndex < 1)
-        {
-            prevPuzzleButton.interactable = false;
-            return;
-        }
-
         nextPuzzleButton.interactable = true;
 
-        SetData(PuzzleManager.GetPuzzle(--currentPuzzleIndex));
+        SetData(PuzzleManager.Instance.GetPuzzle(--currentPuzzleIndex));
 
         if (currentPuzzleIndex < 1)
             prevPuzzleButton.interactable = false;
@@ -82,8 +93,9 @@ public class UIDetailsManager : MonoBehaviour
         difficulty.text = puzzleData.Difficulty;
         creatorName.text = puzzleData.CreatedBy;
         date.text = puzzleData.CreatedAt;
+        solvedBy.text = "Solved By: " + puzzleData.SolvedBy;
 
-        if (PuzzleManager.AllPuzzles.Length > 0)
+        if (PuzzleManager.Instance.AllPuzzles.Length > 1)
             nextPuzzleButton.interactable = true;
     }
 }

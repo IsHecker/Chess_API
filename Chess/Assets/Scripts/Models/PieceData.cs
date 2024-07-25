@@ -2,15 +2,15 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public struct PieceData
+public readonly struct PieceData
 {
-    public char pieceName;
-    public Vector2Int position;
-    public ChessTeam team;
+    public readonly char pieceName;
+    public readonly Vector2Int position;
+    public readonly ChessTeam team;
 
-    public PieceData(char piece, Vector2Int position, ChessTeam team)
+    public PieceData(char pieceName, Vector2Int position, ChessTeam team)
     {
-        this.pieceName = piece;
+        this.pieceName = pieceName;
         this.position = position;
         this.team = team;
     }

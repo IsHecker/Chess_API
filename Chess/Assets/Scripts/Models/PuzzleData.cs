@@ -1,4 +1,6 @@
 using SimpleJSON;
+using System.Collections.Generic;
+using UnityEngine;
 
 public class PuzzleData
 {
@@ -9,8 +11,8 @@ public class PuzzleData
     public string CreatedBy { get; private set; }
     public string CreatedAt { get; private set; }
     public int SolvedBy { get; set; }
-    public JSONArray PiecesPosition { get; set; }
-    public JSONArray Solution { get; set; }
+    public List<PieceData> PiecesPosition { get; set; }
+    public List<(Vector2Int, Vector2Int)> Solution { get; set; }
     public bool IsSolvedByPlayer { get; set; }
 
     public PuzzleData()
@@ -28,7 +30,7 @@ public class PuzzleData
         CreatedBy = data["createdBy"];
         CreatedAt = data["createdAt"];
         SolvedBy = data["solvedBy"];
-        PiecesPosition = (JSONArray)data["piecesPosition"];
-        Solution = (JSONArray)data["solution"];
+        PiecesPosition = ChessNotation.ParseToPiecePosition((JSONArray)data["piecesPosition"]);
+        Solution = ChessNotation.ParseSolution((JSONArray)data["solution"]);
     }
 }

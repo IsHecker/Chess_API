@@ -3,8 +3,12 @@ using UnityEngine;
 
 public class Pawn : ChessPiece
 {
+    private int StartYPosition => (7 + direction) % 7;
+
     public override List<Vector2Int> GetLegalMoves(ChessPiece[,] board)
     {
+        hasMoved = origin.y != StartYPosition;
+
         var oneMove = origin + Vector2Int.up * direction;
 
         if (!ChessBoard.CheckIfCoordsOnBoard(oneMove))
@@ -21,22 +25,18 @@ public class Pawn : ChessPiece
                 legalMoves.Add(twoMove);
         }
 
-        // Capture Move
-        if (origin.y != 7)
-        {
-            //var piece = board[origin.x + 1, origin.y + direction];
-            var piece = ChessBoard.GetPieceAt(new Vector2Int(origin.x + 1, origin.y + direction));
-            if (piece && piece.team != team)
-                legalMoves.Add(new Vector2Int(origin.x + 1, origin.y + direction));
-        }
+        // right side Capture Move
+        Vector2Int movePosition = new Vector2Int(origin.x + 1, origin.y + direction);
+        ChessPiece piece = ChessBoard.GetPieceAt(movePosition);
+        if (piece && piece.team != team)
+            legalMoves.Add(movePosition);
 
-        if (origin.x != 0)
-        {
-            //var piece = board[origin.x - 1, origin.y + direction];
-            var piece = ChessBoard.GetPieceAt(new Vector2Int(origin.x - 1, origin.y + direction));
-            if (piece && piece.team != team)
-                legalMoves.Add(new Vector2Int(origin.x - 1, origin.y + direction));
-        }
+        // left side Capture Move
+        movePosition = new Vector2Int(origin.x - 1, origin.y + direction);
+        piece = ChessBoard.GetPieceAt(movePosition);
+        if (piece && piece.team != team)
+            legalMoves.Add(movePosition);
+
         return legalMoves;
     }
 }

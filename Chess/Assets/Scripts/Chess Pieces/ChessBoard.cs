@@ -6,7 +6,6 @@ using UnityHelper.Utilities;
 
 public class ChessBoard : MonoBehaviour
 {
-
     [SerializeField] private GameObject[] whitePieces;
     [SerializeField] private GameObject[] blackPieces;
 
@@ -25,13 +24,12 @@ public class ChessBoard : MonoBehaviour
     public static Action<ChessPiece, Vector2Int> OnPieceMove;
     public static Action<int> OnHistoryChanged;
 
-    public List<ChessPieceMemento> movesHistory = new List<ChessPieceMemento>();
-    [SerializeField] private int HistoryIndex = -1;
+    public List<ChessPieceMemento> MovesHistory { get; private set; } = new List<ChessPieceMemento>();
+    public int HistoryIndex { get; private set; } = -1;
     public bool IsHistoryBeingBrowsed { get; private set; }
 
     private Transform tilesTransform;
 
-    private List<PieceData> currentPuzzle;
     private Camera currentCamera;
 
     private ChessPiece draggedPiece;
@@ -45,7 +43,7 @@ public class ChessBoard : MonoBehaviour
     private ChessTeam teamTurn = ChessTeam.White;
     public ChessTeam PlayerTeam
     {
-        get => puzzleBoard ? PuzzleManager.GetPlayerTeam() : teamTurn;
+        get => puzzleBoard ? PuzzleManager.Instance.GetPlayerTeam() : teamTurn;
         set => teamTurn = value;
     }
 
@@ -159,34 +157,6 @@ public class ChessBoard : MonoBehaviour
             tile.name = $"{x % 8},{y}";
         }
     }
-    //private void SpawnPieces()
-    //{
-    //    chessPieces = new ChessPiece[8, 8];
-    //    int y = 0;
-
-    //    // preparing white pieces.
-    //    for (int x = 0; x < transform.GetChild(1).childCount; x++)
-    //    {
-    //        if (x != 0 && x % 8 == 0)
-    //            y++;
-
-    //        chessPieces[x % 8, y] = transform.GetChild(1).GetChild(x).GetComponent<ChessPiece>();
-    //        chessPieces[x % 8, y].UpdatePieceOrigin(new(x % 8, y));
-    //    }
-
-    //    y = 7;
-    //    // preparing black pieces.
-    //    for (int x = 0; x < transform.GetChild(2).childCount; x++)
-    //    {
-    //        if (x != 0 && x % 8 == 0)
-    //            y--;
-
-    //        chessPieces[x % 8, y] = transform.GetChild(2).GetChild(x).GetComponent<ChessPiece>();
-    //        chessPieces[x % 8, y].UpdatePieceOrigin(new(x % 8, y));
-    //    }
-    //}
-
-    //HighLights
     private void ShowLegalMoves(ChessPiece selectedPiece)
     {
         if (!IsPlayerTurn(selectedPiece))
@@ -197,6 +167,13 @@ public class ChessBoard : MonoBehaviour
         foreach (var move in legalMoves)
         {
             var tile = GetTileAt(move);
+
+            if (GetPieceAt(new Vector2Int((int)tile.position.x, (int)tile.position.y)))
+            {
+                tile.GetChild(1).gameObject.SetActive(true);
+                continue;
+            }
+
             tile.GetChild(0).gameObject.SetActive(true);
         }
     }
@@ -208,7 +185,10 @@ public class ChessBoard : MonoBehaviour
         foreach (var move in legalMoves)
         {
             var tile = GetTileAt(move);
+
             tile.GetChild(0).gameObject.SetActive(false);
+            tile.GetChild(1).gameObject.SetActive(false);
+
             tile.gameObject.layer = LayerMask.NameToLayer("Tile");
         }
 
@@ -254,7 +234,7 @@ public class ChessBoard : MonoBehaviour
 
         var memento = new ChessPieceMemento(piece, piece.origin, capturedPiece);
         // moves stored as stack.
-        movesHistory.Insert(0, memento);
+        MovesHistory.Insert(0, memento);
     }
 
     private void CheckIfHistoryModified()
@@ -262,29 +242,29 @@ public class ChessBoard : MonoBehaviour
         if (!modifyHistory || HistoryIndex <= -1)
             return;
 
-        movesHistory.RemoveRange(0, HistoryIndex + 1);
+        MovesHistory.RemoveRange(0, HistoryIndex + 1);
         OnHistoryChanged?.Invoke(HistoryIndex);
 
         HistoryIndex = -1;
         IsHistoryBeingBrowsed = false;
     }
 
-    public void UndoMove(bool smooth = true)
+    public void UndoMove(bool smooth)
     {
-        if (HistoryIndex >= movesHistory.Count - 1)
+        if (HistoryIndex >= MovesHistory.Count - 1)
             return;
 
         IsHistoryBeingBrowsed = true;
 
-        PerformHistoryMove(movesHistory[++HistoryIndex], true, smooth);
+        PerformHistoryMove(MovesHistory[++HistoryIndex], true, smooth);
     }
 
-    public void RedoMove(bool smooth = true)
+    public void RedoMove(bool smooth)
     {
         if (HistoryIndex < 0)
             return;
 
-        PerformHistoryMove(movesHistory[HistoryIndex--], false, smooth);
+        PerformHistoryMove(MovesHistory[HistoryIndex--], false, smooth);
 
         if (HistoryIndex < 0)
             IsHistoryBeingBrowsed = false;
@@ -292,20 +272,20 @@ public class ChessBoard : MonoBehaviour
 
     public void UndoAllMoves(bool smooth)
     {
-        while (HistoryIndex < movesHistory.Count - 1)
+        while (HistoryIndex < MovesHistory.Count - 1)
         {
             UndoMove(smooth);
         }
     }
 
-    private void PerformHistoryMove(ChessPieceMemento moveRecord, bool undo, bool smooth)
+    private void PerformHistoryMove(ChessPieceMemento moveRecord, bool undo, bool smoothMove)
     {
         var piece = moveRecord.Piece;
 
         // holds position before preforming undo/redo moves.
         Vector2Int origin = moveRecord.Piece.origin;
 
-        MovePieceTo(piece, moveRecord.Position, smooth, addToHistory: false);
+        MovePieceTo(piece, moveRecord.Position, smoothMove, addToHistory: false);
 
         if (moveRecord.CapturedPiece != null)
         {
@@ -328,10 +308,10 @@ public class ChessBoard : MonoBehaviour
 
     public void ClearHistory()
     {
-        if (movesHistory.Count == 0)
+        if (MovesHistory.Count == 0)
             return;
 
-        movesHistory.Clear();
+        MovesHistory.Clear();
         HistoryIndex = -1;
         IsHistoryBeingBrowsed = false;
     }
@@ -350,10 +330,17 @@ public class ChessBoard : MonoBehaviour
     /// </summary>
     public static void UpdatePiecePosition(Vector2Int position, ChessPiece piece, bool smooth)
     {
-        chessPieces[piece.origin.x, piece.origin.y] = null;
+        if (piece.origin != -Vector2Int.one)    // checks if the piece just has spawned.
+            chessPieces[piece.origin.x, piece.origin.y] = null;
+
         chessPieces[position.x, position.y] = CheckIfCoordsOnBoard(position) ? piece : null;
 
         piece.SetOrigin(position, smooth);
+    }
+
+    public void RemovePiece(ChessPiece piece)
+    {
+        chessPieces[piece.origin.x, piece.origin.y] = null;
     }
 
     public Transform GetTileAt(Vector2Int position)
@@ -374,22 +361,24 @@ public class ChessBoard : MonoBehaviour
             blackNotation.SetActive(false);
 
             cameraHolder.SetLocalPositionAndRotation(new Vector3(6.3f, 3.5f, -10), Quaternion.identity);
-            RotatePieces(0f);
-            return;
         }
+        else
+        {
 
-        blackNotation.SetActive(true);
-        whiteNotation.SetActive(false);
+            blackNotation.SetActive(true);
+            whiteNotation.SetActive(false);
 
-        cameraHolder.SetLocalPositionAndRotation(new Vector3(0.7f, 3.5f, -10), new Quaternion(0f, 0f, 180f, 0f));
-        RotatePieces(180f);
+            cameraHolder.SetLocalPositionAndRotation(new Vector3(0.7f, 3.5f, -10), new Quaternion(0f, 0f, 180f, 0f));
+        }
+        RotatePieces();
     }
 
-    private void RotatePieces(float angle)
+    private void RotatePieces()
     {
+        var rotation = cameraHolder.localRotation;
         for (int i = 0; i < piecesParent.childCount; i++)
         {
-            piecesParent.GetChild(i).localRotation = new Quaternion(0f, 0f, angle, 0f);
+            piecesParent.GetChild(i).localRotation = rotation;
         }
     }
 
@@ -410,56 +399,54 @@ public class ChessBoard : MonoBehaviour
         teamTurn = teamTurn == ChessTeam.White ? ChessTeam.Black : ChessTeam.White;
     }
 
-    public void SetupPieces(List<PieceData> piecesPositions, bool add = false)
+    public void SetupBoard(List<PieceData> piecesPositions)
     {
         if (piecesPositions == null)
             return;
 
-        if (!add)
-            piecesParent.DeleteChildren();
+        piecesParent.DeleteChildren();
+        SpawnPiecesInPosition(piecesPositions, piecesParent);
+        teamTurn = PlayerTeam;
+        RotateBoard(PlayerTeam);
+        ClearHistory();
+    }
 
-        currentPuzzle = piecesPositions;
+    public void SpawnPiecesInPosition(List<PieceData> piecesPositions, Transform piecesParent)
+    {
+        if (piecesPositions == null)
+            return;
+
         foreach (var piece in piecesPositions)
         {
-            SpawnPiece(piece);
+            SpawnPieceInPosition(piece, piecesParent);
         }
-
-        teamTurn = PlayerTeam;
-
-        if (!add)
-            RotateBoard(PlayerTeam);
-
-        ClearHistory();
     }
 
-    public void RestartPuzzle()
+    public ChessPiece SpawnPieceInPosition(PieceData pieceData, Transform piecesParent)
     {
-        //SetupPieces(currentPuzzle);
-        UndoAllMoves(false);
-        ClearHistory();
-    }
+        if (piecesParent == null)
+            piecesParent = this.piecesParent;
 
-    private ChessPiece SpawnPiece(PieceData pieceData)
-    {
         var piecePrefab = pieceData.team == ChessTeam.White ?
             whitePieces.Find(obj => obj.name[1] == pieceData.pieceName) :
             blackPieces.Find(obj => obj.name[1] == pieceData.pieceName);
 
         var piece = Instantiate(piecePrefab, piecesParent).GetComponent<ChessPiece>();
-
-        piece.SetOrigin(pieceData.position, false);
-        chessPieces[pieceData.position.x, pieceData.position.y] = piece;
-
+        piece.transform.localRotation = cameraHolder.transform.localRotation;
+        UpdatePiecePosition(pieceData.position, piece, false);
         return piece;
     }
 
-    public ChessPiece SpawnPiece(GameObject piecePrefab, Vector2Int position)
+    public void RestartPuzzle()
     {
-        var piece = Instantiate(piecePrefab, piecesParent).GetComponent<ChessPiece>();
+        UndoAllMoves(false);
+        ClearHistory();
+    }
 
-        piece.SetOrigin(position, true);
-        chessPieces[position.x, position.y] = piece;
-
-        return piece;
+    public void RemoveLastMove()
+    {
+        MovesHistory.RemoveAt(0);
+        HistoryIndex = -1;
+        IsHistoryBeingBrowsed = false;
     }
 }
